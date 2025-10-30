@@ -9,7 +9,7 @@ import {
   NewEntry,
   Entry,
 } from "../../shared/types";
-import * as z from "zod";
+import * as z from "zod"
 
 const router = express.Router()
 
