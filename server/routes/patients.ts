@@ -11,7 +11,7 @@ import {
 } from "../../shared/types";
 import * as z from "zod";
 
-const router = express.Router();
+const router = express.Router()
 
 router.get("/", (_req, res: Response<NonSensitivePatient[]>) => {
   console.log("--patients - fetch all patients");
