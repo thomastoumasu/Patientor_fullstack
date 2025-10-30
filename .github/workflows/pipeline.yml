@@ -1,0 +1,123 @@
+name: Deployment pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+jobs:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.failure.outputs.RUN_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint code
+        run: npm run lint
+      # - name: Install Playwright Chromium
+      #   run: npx playwright install --with-deps chromium
+      # - name: Run Playwright e2e tests
+      #   run: npm run test:e2e
+      # - uses: actions/upload-artifact@v4
+      #   if: ${{ !cancelled() }}
+      #   with:
+      #     name: playwright-report
+      #     path: playwright-report/
+      #     retention-days: 30
+      - name: Export job run id to output variable if lint or test failed
+        if: ${{ failure() }}
+        id: failure
+        run: echo "RUN_ID=${{ job.check_run_id }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    if: ${{ github.event_name == 'push' && !contains(join(github.event.commits.*.message), '#skip') }}
+    needs: [lint_and_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment
+        run: curl https://api.render.com/deploy/srv-${{ secrets.RENDER_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+
+  tag_release:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.tag.outputs.new_tag }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+      - name: Bump version and push tag
+        id: tag
+        uses: anothrNick/github-tag-action@4ed44965e0db8dab2b466a16da04aec3cc312fd8 # full hash for version 1.75.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+
+  post_success_on_discord:
+    needs: [tag_release]
+    runs-on: ubuntu-latest
+    env:
+      ACTOR: ${{ github.actor }}
+      NEW_VERSION: ${{ needs.tag_release.outputs.new_version }}
+    steps:
+      - name: Generate success message
+        id: generate
+        run: |
+          discord_description="new version ${{ env.NEW_VERSION }} deployed by ${{ env.ACTOR }}"
+          echo $discord_description
+          echo "discord_description=$discord_description" >> $GITHUB_OUTPUT
+      - name: Dispatch on discord
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          username: Github Bot
+          title: A new version of Patientor deployed on ${{ secrets.RENDER_URL }}
+          status: Success
+          description: ${{ steps.generate.outputs.discord_description }}
+
+  post_failure_on_discord:
+    if: ${{ always() }}
+    needs: [lint_and_test]
+    runs-on: ubuntu-latest
+    env:
+      RUN_ID: ${{ needs.lint_and_test.outputs.run-id }}
+      USER_REPO: ${{ github.repository }}
+    steps:
+      - name: Generate failure message
+        id: generate
+        if: ${{ env.RUN_ID != '' }}
+        env:
+          FIRST_COMMIT_IN_CASE_OF_PUSH: ${{ github.event.commits[0].url }}
+        run: |
+          annotations=$(curl https://api.github.com/repos/${{ env.USER_REPO }}/check-runs/${{ env.RUN_ID }}/annotations | jq '.[-1] | {path: .path, message: .message}')
+          first_error_path=$(echo "$annotations" | jq '.path')
+          first_error_message=$(echo "$annotations" | jq '.message')
+          last_commit_in_case_of_pr=$(curl $(curl $(curl https://api.github.com/repos/${{ env.USER_REPO }}/check-runs/${{ env.RUN_ID }} | jq -r '.pull_requests[0].url') | jq -r '.commits_url') | jq -r '.[-1].html_url')
+          discord_description="commit $last_commit_in_case_of_pr ${{ env.FIRST_COMMIT_IN_CASE_OF_PUSH }} broke the build: $first_error_message in $first_error_path"
+          echo "$discord_description"
+          echo "discord_description=$discord_description" >> $GITHUB_OUTPUT
+          details_url=$(curl https://api.github.com/repos/${{ env.USER_REPO }}/check-runs/${{ env.RUN_ID }} | jq -r '.details_url')
+          echo "$details_url"
+          echo "details_url=$details_url" >> $GITHUB_OUTPUT
+      - name: Dispatch on discord
+        if: ${{ env.RUN_ID != '' }}
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          username: Github Bot
+          title: Build failed.
+          url: ${{ steps.generate.outputs.details_url }}
+          status: Failure
+          description: ${{ steps.generate.outputs.discord_description }}
