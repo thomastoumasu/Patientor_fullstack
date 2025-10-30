@@ -6,7 +6,7 @@ https://fullstackopen.com/en/part11/
 
 ## Request for feedback
 
-Hello, I would appreciate feedback on how the types are handled (= shared types.ts and client-specific types.ts), thank you!
+Hello, if time allows it I would appreciate feedback on how the types are handled (= shared types.ts and client-specific types.ts), thank you!
 
 ### Memo
 
