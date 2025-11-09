@@ -1,6 +1,6 @@
 echo "Build script"
 
-npm install
+npm ci
 npm run build:all
 
 # this file needs execute permissions (https://fullstackopen.com/en/part11/deployment#exercises-11-10-11-12-render)
