@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 app.use(express.static("dist"));
 
 app.get("/health", (_req, res) => {
-  res.send("ok");
+  res.send("ok!");
 });
 
 app.use("/api/diagnoses", diagnosesRouter);
