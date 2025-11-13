@@ -8,11 +8,21 @@ https://fullstackopen.com/en/part11/
 
 https://github.com/thomastoumasu/Patientor_fullstack
 
-## Docker image
+## Containerized App deployed on
+
+https://patientor-fullstack-linux-amd64.onrender.com  
+check pipeline-container.yml for details
+
+### Docker image of the containerized app
 
 https://hub.docker.com/repository/docker/thomastoumasu/patientor_fullstack/tags
 
-### Memo
+## App deployed on
+
+https://patientor-fullstack.onrender.com
+check pipeline.yml for details
+
+## Memo
 
 Should mui complain, check if those are needed:  
 @mui/x-date-pickers-pro  
