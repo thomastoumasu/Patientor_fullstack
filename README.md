@@ -1,7 +1,6 @@
 # Patientor_fullstack
 
 Patientor app containing server and client code, both in TypeScript  
-Ex 11.20 and 11.21 of https://fullstackopen.com/en/part11/  
 frontend and backend are also [under](https://github.com/thomastoumasu/Fullstack_submission/tree/main/part9/patientor)  
 Typescript snippets are [here](https://github.com/thomastoumasu/Fullstack_submission/tree/main/part9/firstSteps)  
 Flight diary app in Typescript is [here](https://github.com/thomastoumasu/Fullstack_submission/tree/main/part9/ts-flight-diary-fullstack)
@@ -29,4 +28,4 @@ check pipeline.yml for details
 Should mui complain, check if those are needed:  
 @mui/x-date-pickers-pro  
 @types/eslint\_\_js  
-potential problem with `<Grid>` (was `<Grid item>` before and just changed it)
+potential problem with `<Grid>` (was `<Grid item>` before version change)
